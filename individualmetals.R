@@ -7,7 +7,7 @@ library(summarytools)
 library(ggplot2)
 
 # tidy long data for facet wrap plot
-data<- read_excel("CE_perfneuroscaled_tertiles.xlsx")
+data<- read.csv("CE_perfneuroscaled_tertiles.csv")
 data_log <- data %>% mutate(across(c(Mg, Al, Ca, Cr, Mn, Fe, Ni, Cu, Zn, As, Se, Hg, Pb), log10))
 
 
