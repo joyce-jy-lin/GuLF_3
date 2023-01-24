@@ -27,9 +27,10 @@ data_log$headinjuryever <- factor(data_log$headinjuryever)
 data_log$drinklot <- factor(data_log$drinklot)
 
 data_log<- data_log %>% mutate(headinjuryever = case_when(headinjury == 2 ~ '1',
-                                          headinjury ==0 ~ '0')) # end function
+                                          headinjury ==0 ~ '0',
+                                          headinjury ==1 ~ '0')) # head injury where loss consciousness
 data_log<- data_log %>% mutate(drinklot = case_when(drinksweek <= 14 ~ '0',
-                                                          drinksweek >14 ~ '1')) # end function
+                                                          drinksweek >14 ~ '1')) # more than 14 drinks/week
 
 
 
