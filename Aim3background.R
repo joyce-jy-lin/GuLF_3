@@ -111,8 +111,8 @@ summaryincome <- dat %>% group_by(incomegroup) %>% summarise(Se = quantile(Se, c
 summaryincome
 
 ## race subset
-datablack <-filter(dat, EN_RACE2 =="2")
-datawhite <-filter(dat, EN_RACE2 =="1")
+datablack <-filter(data, EN_RACE2 =="2")
+datawhite <-filter(data, EN_RACE2 =="1")
 
 summaryinc <- datablack %>%
   group_by(incomegroup) %>%
@@ -124,6 +124,43 @@ summaryinc
 data%>% count(data$EN_STATE)
 summarystate <- data %>% group_by(EN_STATE) %>% summarise(Se = quantile(Se, c(0.5, 0.2, 0.75)), q = c(0.5, 0.25, 0.75))
 summarystate
+
+## marital --------------------------------
+data<- data %>% mutate(marital = case_when(EN_MARITAL == 1 ~ 'Married or living together',
+                                             EN_MARITAL == 6 ~ 'Married or living together',
+                                             EN_MARITAL >=2 & EN_MARITAL <=4 ~ 'Single or separated',
+                                              EN_MARITAL == 5 ~ 'never married')) # end function
+
+
+data<- data %>% mutate(BMI = case_when(CE_BMI <= 24.9 ~ 'healthy',
+                                       CE_BMI >=25 & CE_BMI <=30 ~ 'overweight',
+                                       CE_BMI >=30 ~ 'obese')) # end function
+
+
+data<- data %>% mutate(headinjuryever = case_when(headinjury == 2 ~ '1',
+                                                  headinjury ==0 ~ '0',
+                                                  headinjury ==1 ~ '0')) # head injury where loss consciousness
+data<- data %>% mutate(drinklot = case_when(drinksweek <= 14 ~ '0',
+                                            drinksweek >14 ~ '1')) # more than 14 drinks/week
+
+data$headinjuryever <- factor(data$headinjuryever)
+data$drinklot <- factor(data$drinklot)
+
+
+datablack <-filter(data, EN_RACE2 =="2")
+datawhite <-filter(data, EN_RACE2 =="1")
+
+summarymarital <- datawhite %>% group_by(marital) %>%  summarise(Count = n())
+summarymarital
+
+summaryhead <- data %>% group_by(headinjuryever) %>%  summarise(Count = n())
+summaryhead
+
+summaryBMI <- data %>% group_by(BMI) %>%  summarise(Count = n())
+summaryBMI
+
+summarydrink <- datablack %>% group_by(drinklot) %>%  summarise(Count = n())
+summarydrink
 
 # Cum_THC -------------------------------------------------------------------
 as.numeric(data$THC_CUMULATIVE1)
