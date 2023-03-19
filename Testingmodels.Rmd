@@ -1,0 +1,97 @@
+---
+title: "MLR vs Neg Binomial vs Tobit"
+author: "Joyce Lin"
+date: "2023-03-16"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+setwd("/Users/joycelin/Desktop/Gulf/Aim3/GuLF_3")
+library(tidyverse)
+library(dplyr)
+library(VGAM)
+library(AER)
+require(MASS)
+require(foreign)
+
+data<- read.csv("NEW_CE_neuro_quantiles.csv")
+data$race <- relevel(factor(data$race), ref = "White")
+data$QTHC <- factor(data$QTHC)
+data$EN_FORMERSMOKER <- factor(data$EN_FORMERSMOKER)
+data$THC_CUMULATIVE1<- as.numeric(data$THC_CUMULATIVE1)
+data$headinjuryever <- factor(data$headinjuryever)
+data$drinklot <- factor(data$drinklot)
+data$Caffiene2h <- factor(data$Caffiene2h)
+
+data<- data %>% mutate(marital = case_when(EN_MARITAL == 1 ~ 'Married or with partner',
+                                           EN_MARITAL == 6 ~ 'Married or with partner',
+                                           EN_MARITAL == 2 ~ 'Separated or single',
+                                           EN_MARITAL == 3 ~ 'Separated or single',
+                                           EN_MARITAL == 5 ~ 'Separated or single')) 
+
+data$marital <- factor(data$marital)
+
+data<- data %>% mutate(BMI = case_when(CE_BMI <= 24.9 ~ 'healthy',
+                                       CE_BMI >=25 & CE_BMI <=30 ~ 'overweight',
+                                       CE_BMI >=30 ~ 'obese')) # end function
+
+data$BMI <- factor(data$BMI)
+
+data_log <- data %>% mutate(across(c(Mg, Al, Ca, Cr, Mn, Fe, Ni, Cu, Zn, As, Se, Hg, Pb), log10))
+
+blacksubgroup<-filter(data, race =="Black")
+whitesubgroup<-filter(data, race =="White")
+
+```
+
+## Multiple Linear Regression using OLS
+
+```{r MLR, echo=TRUE}
+MLR1 <- lm(CE_BARS_CPT_CR_FRACTION ~MnQ + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = blacksubgroup)
+summary(MLR1)
+BIC(MLR1)
+```
+Check residuals of MLR model:
+```{r MLR residuals, echo=TRUE}
+hist(residuals(MLR1))
+shapiro.test(residuals(MLR1))
+plot(MLR1)
+```
+Violates MLR assumption of homoscedasticity of errors
+
+## Negative Binomial for count data where variance > mean
+
+```{r Neg binomial, echo=TRUE, warning=FALSE}
+NB1 <- glm.nb(CE_BARS_CPT_CR_FRACTION ~ MnQ + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = blacksubgroup)
+summary(NB1)
+(est <- cbind(Estimate = coef(NB1), confint(NB1)))
+exp(est)
+BIC(NB1)
+```
+Check residuals of Neg Bin model:
+```{r NB residuals, echo=TRUE}
+hist(residuals(NB1))
+shapiro.test(residuals(NB1))
+plot(NB1)
+```
+
+## Tobit Regression for Data with Right Censoring
+```{r Tobit, echo=TRUE}
+m <- VGAM::vglm(CE_BARS_CPT_CR_FRACTION ~ MnQ + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, VGAM::tobit(Upper = 1), data = blacksubgroup)
+
+ctable <- coef(summary(m))
+pvals <- 2 * pt(abs(ctable[, "z value"]), df.residual(m), lower.tail = FALSE)
+cbind(ctable, pvals)
+```
+
+Check residuals of Tobit model:
+```{r Tobit residuals, echo=TRUE}
+hist(residuals(m))
+shapiro.test(residuals(m))
+plot(m)
+```
+
+
