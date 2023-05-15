@@ -201,7 +201,7 @@ library(dotwhisker)
 library(dplyr)
 library(gdata)
 blacksubgroup<-filter(data_log, race =="Black")
-whitesubgroup<-filter(data_log, race =="White")
+whitesubgroup<-filter(data_log, race =="White") 
 
 mod1<- glm(CPThit1 ~ CdBinary + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = data_log, family = binomial)
 mod2<- glm(CPThit1 ~ CdBinary + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = whitesubgroup, family = binomial)
