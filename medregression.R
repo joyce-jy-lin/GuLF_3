@@ -55,27 +55,27 @@ data$BMI <- factor(data$BMI)
 data <- data %>% 
   rename("Race" = "race")
 
-blacksubgroup<-filter(data, Race =="Black")
-whitesubgroup<-filter(data, Race =="White")
 
 data_log <- data %>% mutate(across(c(Mg, Al, Ca, Cr, Mn, Fe, Ni, Cu, Zn, As, Se, Hg, Pb), log10))
 
 ## dichotomize outcome for fractional responses (CPT CR Fraction, CPT hit fraction)
-data_log <- data_log %>% mutate(CPTcr1 = case_when(CE_BARS_CPT_CR_FRACTION < 0.80 ~ '1',
-                                                   CE_BARS_CPT_CR_FRACTION >= 0.8 ~ '0')) 
-data_log <- data_log %>% mutate(CPThit1 = case_when(CE_BARS_CPT_HIT_FRACTION < 0.80 ~ '1',
-                                                    CE_BARS_CPT_HIT_FRACTION >= 0.8 ~ '0')) 
+data_log <- data_log %>% mutate(CPTcr1 = case_when(CE_BARS_CPT_CR_FRACTION < 0.80 ~ '0',
+                                                   CE_BARS_CPT_CR_FRACTION >= 0.8 ~ '1')) 
+data_log <- data_log %>% mutate(CPThit1 = case_when(CE_BARS_CPT_HIT_FRACTION < 0.80 ~ '0',
+                                                    CE_BARS_CPT_HIT_FRACTION >= 0.8 ~ '1')) 
 data_log$CPTcr1 <- as.numeric(data_log$CPTcr1)
 data_log$CPThit1 <- as.numeric(data_log$CPThit1)
 
+blacksubgroup<-filter(data_log, Race =="Black")
+whitesubgroup<-filter(data_log, Race =="White")
 # Regular linear regression ----------------------------
 mod1 <- lm(CE_BARS_DST_REVERSE_CNT ~ MnQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + headinjuryever + drinklot + marital, data = data_log)
 summary(mod1)
 confint(mod1)
 
-# Quantile regression with bootstrap SE ----Mn DST reverse-------------
+# Dot whisker plot quantile regression with bootstrap SE ----Zn DST reverse-------------
 library(quantreg)
-mod1 <- rq(CE_BARS_DST_REVERSE_CNT ~ MnQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + headinjuryever + drinklot + marital, data = data_log)
+mod1 <- rq(CE_BARS_DST_FORWARD_CNT ~ SeQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = data_log)
 mod1<-summary.rq(mod1, se="boot")
 coef=mod1$coefficients[,1]
 err=mod1$coefficients[,2]
@@ -88,7 +88,7 @@ ci_dat %>%
     lower = X1,
     upper = X2)
 
-wmod1 <- rq(CE_BARS_DST_REVERSE_CNT ~ MnQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + headinjuryever + drinklot + marital, data = whitesubgroup)
+wmod1 <- rq(CE_BARS_DST_FORWARD_CNT ~ SeQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = whitesubgroup)
 wmod1<-summary.rq(wmod1, se="boot")
 wcoef=wmod1$coefficients[,1]
 werr=wmod1$coefficients[,2]
@@ -102,7 +102,7 @@ wci_dat %>%
     lower = X1,
     upper = X2)
 
-bmod1 <- rq(CE_BARS_DST_REVERSE_CNT ~ MnQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + headinjuryever + drinklot + marital, data = blacksubgroup)
+bmod1 <- rq(CE_BARS_DST_FORWARD_CNT ~ SeQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = blacksubgroup)
 bmod1<-summary.rq(bmod1, se="boot")
 bcoef=bmod1$coefficients[,1]
 berr=bmod1$coefficients[,2]
@@ -117,25 +117,26 @@ bci_dat %>%
     upper = X2)
 
 
-Mn <- data.frame(x =c(coef["MnQ2"], coef["MnQ3"], coef["MnQ4"], wcoef["MnQ2"], wcoef["MnQ3"], wcoef["MnQ4"], bcoef["MnQ2"], bcoef["MnQ3"], bcoef["MnQ4"]),
-                 y = c("Mn Q2", "Mn Q3", "Mn Q4","Mn Q2", "Mn Q3", "Mn Q4", "Mn Q2", "Mn Q3", "Mn Q4"),
+Se <- data.frame(x =c(coef["SeQ2"], coef["SeQ3"], coef["SeQ4"], wcoef["SeQ2"], wcoef["SeQ3"], wcoef["SeQ4"], bcoef["SeQ2"], bcoef["SeQ3"], bcoef["SeQ4"]),
+                 y = c("Se Q2", "Se Q3", "Se Q4","Se Q2", "Se Q3", "Se Q4", "Se Q2", "Se Q3", "Se Q4"),
                  lower = c(ci_dat[2,1], ci_dat[3,1], ci_dat[4,1], wci_dat[2,1], wci_dat[3,1], wci_dat[4,1], bci_dat[2,1], bci_dat[3,1], bci_dat[4,1]),
                  upper = c(ci_dat[2,2], ci_dat[3,2], ci_dat[4,2], wci_dat[2,2], wci_dat[3,2], wci_dat[4,2], bci_dat[2,2], bci_dat[3,2], bci_dat[4,2]),
                  Race = c("All", "All", "All", "White", "White", "White","Black", "Black","Black"))
 
-Mn$y <- factor(Mn$y, c("Mn Q4", "Mn Q3", "Mn Q2"))
-Mn$Race <- factor(Mn$Race, c("Black", "White", "All"))
+Se$y <- factor(Se$y, c("Se Q4", "Se Q3", "Se Q2"))
+Se$Race <- factor(Se$Race, c("Black", "White", "All"))
 
 library("ggplot2")
-p<-ggplot(Mn, aes(y, x, color=Race, group=Race)) +     
+p<-ggplot(Se, aes(y, x, color=Race, group=Race)) +     
   geom_point(position = position_dodge(width = 0.7)) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width=0.2, position=position_dodge(width=0.7)) + 
-  coord_flip() + geom_vline(xintercept = 0)
+  geom_errorbar(aes(ymin = lower, ymax = upper), width=0.2, position=position_dodge(width=0.7))+
+  geom_hline(yintercept=0, colour = "grey60", linetype = 2) + scale_fill_discrete(breaks=c('All', 'White', 'Black'))+coord_flip() + labs(y = bquote('Coefficent Estimate with 95% CIs')) 
 p
 
-# Quantile regression with bootstrap SE --Cr D Prime---------------
+
+# Quantile regression with bootstrap SE --Cr D Prime presentation plots thicker---------------
 library(quantreg)
-mod1 <- rq(CE_BARS_CPT_D_PRIME ~ CrQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + headinjuryever + drinklot + marital, data = data_log)
+mod1 <- rq(CE_BARS_CPT_D_PRIME ~ CrQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = data_log)
 mod1<-summary.rq(mod1, se="boot")
 coef=mod1$coefficients[,1]
 err=mod1$coefficients[,2]
@@ -148,7 +149,7 @@ ci_dat %>%
     lower = X1,
     upper = X2)
 
-wmod1 <- rq(CE_BARS_CPT_D_PRIME ~ CrQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + headinjuryever + drinklot + marital, data = whitesubgroup)
+wmod1 <- rq(CE_BARS_CPT_D_PRIME ~ CrQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = whitesubgroup)
 wmod1<-summary.rq(wmod1, se="boot")
 wcoef=wmod1$coefficients[,1]
 werr=wmod1$coefficients[,2]
@@ -162,7 +163,7 @@ wci_dat %>%
     lower = X1,
     upper = X2)
 
-bmod1 <- rq(CE_BARS_CPT_D_PRIME ~ CrQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + headinjuryever + drinklot + marital, data = blacksubgroup)
+bmod1 <- rq(CE_BARS_CPT_D_PRIME ~ CrQ + CE_AGE + CE_BMI + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = blacksubgroup)
 bmod1<-summary.rq(bmod1, se="boot")
 bcoef=bmod1$coefficients[,1]
 berr=bmod1$coefficients[,2]
@@ -188,8 +189,34 @@ Cr$Race <- factor(Cr$Race, c("Black", "White", "All"))
 
 library("ggplot2")
 p<-ggplot(Cr, aes(y, x, color=Race, group=Race)) +     
-  geom_point(position = position_dodge(width = 0.7)) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width=0.2, position=position_dodge(width=0.7)) + 
-  coord_flip() + geom_vline(xintercept = 0)
+  geom_point(position = position_dodge(width = 0.7), size = 4) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width=0, position=position_dodge(width=0.7), linewidth=2.5) + 
+  geom_hline(yintercept=0, colour = "grey60", linetype = 2) + scale_fill_discrete(breaks=c('All', 'White', 'Black'))+ ggtitle("CPT D Prime")+ theme(text = element_text(size = 16)) +
+  scale_y_continuous(limits=c(-1.01, 0.7),breaks=c(-1,-0.5, 0, 0.5)) + coord_flip() + labs(y = bquote('Coefficent Estimate with 95% CIs')) + theme_bw()+ theme(panel.border = element_rect(fill=NA, colour = "black", size=1)) + theme(axis.text=element_text(size=16))
 p
+
+##### Dichotomous CPT outcomes using log
+#### plot dot whisker for all, black, and white together ----------------------------------
+library(dotwhisker)
+library(dplyr)
+library(gdata)
+blacksubgroup<-filter(data_log, race =="Black")
+whitesubgroup<-filter(data_log, race =="White")
+
+mod1<- glm(CPThit1 ~ CdBinary + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = data_log, family = binomial)
+mod2<- glm(CPThit1 ~ CdBinary + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = whitesubgroup, family = binomial)
+mod3<- glm(CPThit1 ~ CdBinary + CE_BMI + CE_AGE + CE_C1 + EN_FORMERSMOKER + drinklot + marital, data = blacksubgroup, family = binomial)
+
+All <-broom::tidy(mod1) %>% filter(term != "CE_AGE") %>% filter(term !="CE_C1") %>% filter(term != "EN_FORMERSMOKER")%>%filter(term != "EN_FORMERSMOKER1")%>%filter(term != "passivesmoke")%>% filter(term != "passivesmoke1")%>% filter(term != "passivesmokeNA")%>%filter(term != "CE_BMI")%>% filter(term != "headinjuryever1")%>%filter(term != "drinklot1")%>% filter(term != "maritalSeparated or single")%>% filter(term != "Caffiene2h1")%>% filter(term != "Caffiene2h")%>% filter(term != "Mn")%>% filter(term != "Cr")%>% filter(term != "Pb")%>% filter(term != "Cu")%>% filter(term != "Hg")%>% filter(term != "As")%>% filter(term != "Mg")
+White <-broom::tidy(mod2) %>% filter(term != "CE_AGE") %>% filter(term !="CE_C1") %>% filter(term != "EN_FORMERSMOKER")%>%filter(term != "EN_FORMERSMOKER1")%>%filter(term != "passivesmoke")%>% filter(term != "passivesmoke1")%>% filter(term != "passivesmokeNA")%>%filter(term != "CE_BMI")%>% filter(term != "headinjuryever1")%>%filter(term != "drinklot1")%>% filter(term != "maritalSeparated or single")%>% filter(term != "Caffiene2h1")%>% filter(term != "Caffiene2h")%>% filter(term != "Mn")%>% filter(term != "Cr")%>% filter(term != "Pb")%>% filter(term != "Cu")%>% filter(term != "Hg")%>% filter(term != "As")%>% filter(term != "Mg")
+Black <-broom::tidy(mod3) %>% filter(term != "CE_AGE") %>% filter(term !="CE_C1") %>% filter(term != "EN_FORMERSMOKER")%>%filter(term != "EN_FORMERSMOKER1")%>%filter(term != "passivesmoke")%>% filter(term != "passivesmoke1")%>% filter(term != "passivesmokeNA")%>%filter(term != "CE_BMI")%>% filter(term != "headinjuryever1")%>%filter(term != "drinklot1")%>% filter(term != "maritalSeparated or single")%>% filter(term != "Caffiene2h1")%>% filter(term != "Caffiene2h")%>% filter(term != "Mn")%>% filter(term != "Cr")%>% filter(term != "Pb")%>% filter(term != "Cu")%>% filter(term != "Hg")%>% filter(term != "As")%>% filter(term != "Mg")
+
+all_models <- combine(Black, White, All)
+colnames(all_models)[6] ="model"
+
+plotRace_As<- dwplot(all_models, dodge_size = 0.5, dot_args = list(aes(colour = model),size = 2), whisker_args = list(aes(colour=model), size = 1)) %>% relabel_predictors(c("raceBlack" = "Black", "AsQuartile2" = "As Q2", "AsQuartile3" = "As Q3", "AsQuartile4" = "As Q4"))
+plotRace_As
+plotRace_As1 <- plotRace_As + geom_vline(xintercept = 0, colour = "grey60", linetype = 2) + ggtitle("CPT Hit Fraction (dichotomous)") + theme(text = element_text(size = 12)) + labs(x = bquote('Coefficent Estimate with 95% CIs')) + theme(axis.title.x = element_text(margin = margin(t = 12)))
+plotRace_As1 
+
 
