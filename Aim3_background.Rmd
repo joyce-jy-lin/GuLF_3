@@ -1,0 +1,91 @@
+---
+title: "Aim 3 Table 1"
+author: "Joyce Lin"
+date: "2023-03-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(EnvStats)
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(broom)      
+library(Hmisc) 
+library(gtsummary)
+library(summarytools)
+library(table1)
+```
+
+## GuLF Participant Characteristics
+
+Background information for GuLF Aim 3
+
+```{r load data}
+setwd("/Users/joycelin/Desktop/Gulf/Aim3")
+data<- read.csv("NEW_CE_neuro_quantiles.csv")
+data[1:5, 1:10]
+```
+
+Cleaner table
+```{r}
+knitr::kable(
+  data[1:5, 1:10], 
+  caption = "cleaner table: knitr kable"
+)
+```
+
+
+```{r, include = FALSE}
+data<- data %>% mutate(marital = case_when(EN_MARITAL == 1 ~ 'Married or living together',
+                                             EN_MARITAL == 6 ~ 'Married or living together',
+                                             EN_MARITAL >=2 & EN_MARITAL <=4 ~ 'Single or separated',
+                                              EN_MARITAL == 5 ~ 'Never married')) 
+
+data <- data %>% mutate(EDU = case_when(CE_C1 > 18 ~ 'College or more',
+                                        CE_C1 > 15 & CE_C1 <=18 ~ 'Some College',
+                                        CE_C1 > 13 & CE_C1<= 15 ~ 'Highschool',
+                                        CE_C1 <=13 ~ 'Less than Highschool')) 
+
+data<- data %>% mutate(BMI = case_when(CE_BMI <= 24.9 ~ 'Healthy',
+                                       CE_BMI >=25 & CE_BMI <=30 ~ 'Overweight',
+                                       CE_BMI >=30 ~ 'Obese'))
+
+data <- data %>% mutate(CEagegroup = case_when(CE_AGE >= 70 ~ '>= 70',
+                                             CE_AGE >= 60 & CE_AGE <=69 ~ '60 - 69',
+                                             CE_AGE >= 40 & CE_AGE<= 59 ~ '40 - 59',
+                                             CE_AGE >= 20 & CE_AGE <= 39 ~ '20 - 39',
+                                             CE_AGE < 20 ~ '< 20')) 
+
+data$EN_FORMERSMOKER <- 
+  factor(data$EN_FORMERSMOKER, levels=c(1,0),
+         labels=c("Yes", 
+                  "No"))
+data$drinklot <- 
+  factor(data$drinklot, levels=c(1,0),
+         labels=c("Yes", 
+                  "No"))
+
+label(data$CEagegroup) <- "Age"
+label(data$EDU) <- "Educational Attainment"
+label(data$marital) <- "Marital Status"
+label(data$EN_FORMERSMOKER) <- "Smoking History"
+label(data$drinklot) <- "Frequent Alcohol Useᵃ"
+label(data$EN_STATE) <- "State of Residence"
+
+units(data$CEagegroup)<- "years"
+
+
+```
+Table 1
+
+```{r}
+footnote <- "ᵃ > 14 drinks a week"
+
+table1(~ CEagegroup + EDU + marital + EN_FORMERSMOKER + drinklot + BMI + EN_STATE| race, data=data, overall=c(left="Total"), Other = c(right="Other"), footnote = footnote)
+```
+
+
+
