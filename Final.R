@@ -51,6 +51,14 @@ blacksubgroup<-filter(data_log, Race =="Black")
 whitesubgroup<-filter(data_log, Race =="White")
 othersubgroup<-filter(data_log, Race =="Other")
 
+lowed<-filter(data_log, CE_C1 <=15)
+highed<-filter(data_log, CE_C1 >=16)
+
+summaryhighed <- highed %>%
+  group_by(Race) %>%
+  summarise(Count = n())
+summaryhighed
+
 ## QUARTILE regression table-----------------------------------
 #CPT D Prime
 metal <- "AsQ"
@@ -249,8 +257,6 @@ Allmetal<- Allmetal %>%
   mutate_if(is.numeric, round, digits = 4)
 
 ## Continuous -----------------------------------------------------------------------------
-
-## QUARTILE regression table-----------------------------------
 #CPT D Prime
 metal <- "As"
 predictors <- c( "CE_AGE", "CE_BMI", "CE_C1", "EN_FORMERSMOKER","drinklot","marital")
@@ -1158,8 +1164,10 @@ CuCr<- pred.resp.bivar.levels.data %>%
   filter(variable1 == "Cu", variable2 == "Cr")
 MnCr<- pred.resp.bivar.levels.data %>%
   filter(variable1 == "Mn", variable2 == "Cr")
+HgCr<- pred.resp.bivar.levels.data %>%
+  filter(variable1 == "Hg", variable2 == "Cr")
 
-p<- ggplot(MnCr, aes(z1, est))+ geom_smooth(aes(col = quantile), stat = "identity")+
+p<- ggplot(CuCr, aes(z1, est))+ geom_smooth(aes(col = quantile), stat = "identity")+
   geom_hline(yintercept=0, linetype= "dashed") + 
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
